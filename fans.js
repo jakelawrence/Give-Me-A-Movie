@@ -3,15 +3,15 @@ const fs = require("fs");
 
 // Load films data from the JSON file
 const filmsData = JSON.parse(fs.readFileSync("films.json", "utf8"));
-const totalPages = 50;
+const totalPages = 25;
 const outputFilePath = "film_fans.json";
 
 // Specify the start and stop films
-const startFilm = "Once Upon a Time... in Hollywood"; // Replace with the film name to start
-const stopFilm = "Zodiac"; // Replace with the film name to stop
+const startFilm = "Titane"; // Replace with the film name to start
+const stopFilm = "The Little Mermaid"; // Replace with the film name to stop
 
 // Define the number of films to process before restarting the browser
-const filmsPerSession = 10;
+const filmsPerSession = 2;
 
 function loadExistingFansData(filePath) {
   try {
@@ -34,13 +34,18 @@ async function scrapeFilm(film, page, allFans) {
     const fanPageURL = `${filmLink}reviews/rated/5/by/activity/page/${pageNumber}/`;
 
     try {
-      await page.goto(fanPageURL, { waitUntil: "domcontentloaded", timeout: 60000 });
+      await page.goto(fanPageURL, {
+        waitUntil: "domcontentloaded",
+        timeout: 60000,
+      });
 
       const selector = "li.film-detail";
       const hasContent = await page.$(selector);
 
       if (!hasContent) {
-        console.log(`No more fans found for film: ${filmName}, Page: ${pageNumber}`);
+        console.log(
+          `No more fans found for film: ${filmName}, Page: ${pageNumber}`
+        );
         break; // Stop if no fans are found
       }
 
@@ -49,7 +54,11 @@ async function scrapeFilm(film, page, allFans) {
         return fanElements
           .map((fan) => {
             const usernameElement = fan.querySelector("a.avatar");
-            const username = usernameElement ? usernameElement.getAttribute("href").substring(1) : null;
+            const username = usernameElement
+              ? usernameElement
+                  .getAttribute("href")
+                  .substring(1, usernameElement.getAttribute("href").length - 1)
+              : null;
             return username ? { username, filmSlug: slug } : null;
           })
           .filter((fan) => fan !== null); // Remove null entries
@@ -59,9 +68,13 @@ async function scrapeFilm(film, page, allFans) {
 
       filmFans.push(...fans);
 
-      console.log(`Page ${pageNumber} for ${filmName} collected ${fans.length} fans.`);
+      console.log(
+        `Page ${pageNumber} for ${filmName} collected ${fans.length} fans.`
+      );
     } catch (error) {
-      console.error(`Error on page ${pageNumber} for ${filmName}: ${error.message}`);
+      console.error(
+        `Error on page ${pageNumber} for ${filmName}: ${error.message}`
+      );
       break; // Exit loop for this film if there's an error
     }
   }
